@@ -1,22 +1,27 @@
 package config
 
 import (
-	"log"
+	"fmt"
 	"os"
 
 	"github.com/tmozzze/SkoobyTODO/internal/utils"
 )
 
 type Config struct {
-	VarEnv string
+	Env string
 }
 
 func New() *Config {
-	err := utils.LoadEnv(".env")
+	return &Config{}
+}
+
+func (c *Config) Load(envPath string) error {
+	const op = "config.config.Load"
+	err := utils.LoadEnv(envPath)
 	if err != nil {
-		log.Fatalf("config error: %v", err)
+		return fmt.Errorf("%s: load config failed: %w", op, err)
 	}
 
-	varEnv := os.Getenv("MY_VAR")
-	return &Config{VarEnv: varEnv}
+	c.Env = os.Getenv("ENV")
+	return nil
 }

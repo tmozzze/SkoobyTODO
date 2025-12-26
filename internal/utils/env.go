@@ -32,6 +32,7 @@ func LoadEnv(path string) error {
 
 		// split key, value and set env
 		parts := strings.SplitN(line, "=", 2)
+
 		if len(parts) == 2 {
 			key := strings.TrimSpace(parts[0])
 			val := strings.TrimSpace(parts[1])

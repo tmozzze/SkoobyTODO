@@ -6,6 +6,9 @@ import (
 	"os"
 
 	"github.com/tmozzze/SkoobyTODO/internal/config"
+	"github.com/tmozzze/SkoobyTODO/internal/handlers"
+	"github.com/tmozzze/SkoobyTODO/internal/service"
+	"github.com/tmozzze/SkoobyTODO/internal/storage/inmemory"
 )
 
 const (
@@ -15,7 +18,7 @@ const (
 )
 
 func main() {
-
+	// Load config
 	cfg := config.New()
 	err := cfg.Load(".env")
 	if err != nil {
@@ -23,9 +26,26 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Init logger
 	log := setupLogger(cfg.Env)
 	log.Info("starting SkoobyTODO", slog.String("env", cfg.Env))
 	log.Debug("debug messages are enabled")
+
+	// Init storage
+	store := inmemory.NewMemStorage(log)
+	log.Info("storage is initialized")
+
+	// Init service
+	svc := service.NewService(store, log)
+	log.Info("service is initialized")
+
+	// Init handlers
+	handler := handlers.NewHandler(svc, log)
+	log.Info("handler is initialized")
+
+	// Init router
+	router := handler.InitRoutes()
+	fmt.Println(router)
 
 }
 

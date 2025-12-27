@@ -16,12 +16,14 @@ type TaskRepository interface {
 	GetAll(ctx context.Context) (tasks []models.Task, err error)
 }
 
+// TaskService - struct for service
 type TaskService struct {
 	repo TaskRepository
 	log  *slog.Logger
 }
 
-func New(taskRepo TaskRepository, log *slog.Logger) *TaskService {
+// NewService - constructor for TaskService --> *TaskService
+func NewService(taskRepo TaskRepository, log *slog.Logger) *TaskService {
 	return &TaskService{repo: taskRepo, log: log}
 }
 

@@ -39,7 +39,7 @@ func (s *TaskService) Create(ctx context.Context, task models.Task) (int, error)
 	if task.Title == "" {
 		log.Warn("empty title")
 
-		return 0, fmt.Errorf("%s: %w", op, ErrInvalidTitle)
+		return 0, fmt.Errorf("%s: %w", op, models.ErrInvalidTitle)
 	}
 
 	id, err := s.repo.Create(ctx, task)
@@ -64,7 +64,7 @@ func (s *TaskService) Delete(ctx context.Context, id int) error {
 	// Validating
 	if id <= 0 {
 		log.Warn("invalid id")
-		return fmt.Errorf("%s: %w", op, ErrInvalidID)
+		return fmt.Errorf("%s: %w", op, models.ErrInvalidID)
 	}
 
 	err := s.repo.Delete(ctx, id)
@@ -88,12 +88,12 @@ func (s *TaskService) Update(ctx context.Context, id int, updTask models.Task) (
 	// Validating
 	if id <= 0 {
 		log.Warn("invalid id")
-		return models.Task{}, fmt.Errorf("%s: %w", op, ErrInvalidID)
+		return models.Task{}, fmt.Errorf("%s: %w", op, models.ErrInvalidID)
 	}
 
 	if updTask.Title == "" {
 		log.Warn("empty title")
-		return models.Task{}, fmt.Errorf("%s: %w", op, ErrInvalidTitle)
+		return models.Task{}, fmt.Errorf("%s: %w", op, models.ErrInvalidTitle)
 	}
 
 	task, err := s.repo.Update(ctx, id, updTask)
@@ -118,7 +118,7 @@ func (s *TaskService) GetByID(ctx context.Context, id int) (models.Task, error) 
 	// Validating
 	if id <= 0 {
 		log.Warn("invalid id")
-		return models.Task{}, fmt.Errorf("%s: %w", op, ErrInvalidID)
+		return models.Task{}, fmt.Errorf("%s: %w", op, models.ErrInvalidID)
 	}
 
 	task, err := s.repo.GetByID(ctx, id)

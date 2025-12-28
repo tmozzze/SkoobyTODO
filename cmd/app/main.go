@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log/slog"
+	"net/http"
 	"os"
 
 	"github.com/tmozzze/SkoobyTODO/internal/config"
@@ -32,11 +33,11 @@ func main() {
 	log.Debug("debug messages are enabled")
 
 	// Init storage
-	store := inmemory.NewMemStorage(log)
+	storage := inmemory.NewMemStorage(log)
 	log.Info("storage is initialized")
 
 	// Init service
-	svc := service.NewService(store, log)
+	svc := service.NewService(storage, log)
 	log.Info("service is initialized")
 
 	// Init handlers
@@ -46,6 +47,14 @@ func main() {
 	// Init router
 	router := handler.InitRoutes()
 	fmt.Println(router)
+
+	// Server
+	log.Info("server starting", "port", cfg.ServerPort)
+
+	if err := http.ListenAndServe(":"+cfg.ServerPort, router); err != nil {
+		log.Error("server failed to start", "err", err)
+		os.Exit(1)
+	}
 
 }
 

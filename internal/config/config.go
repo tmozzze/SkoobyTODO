@@ -9,6 +9,9 @@ import (
 
 type Config struct {
 	Env string
+
+	// server
+	ServerPort string
 }
 
 func New() *Config {
@@ -23,5 +26,6 @@ func (c *Config) Load(envPath string) error {
 	}
 
 	c.Env = os.Getenv("ENV")
+	c.ServerPort = os.Getenv("SERVER_PORT")
 	return nil
 }

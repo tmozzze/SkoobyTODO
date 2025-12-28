@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"log/slog"
@@ -32,34 +33,37 @@ func (h *Handler) createTask(w http.ResponseWriter, r *http.Request) {
 	// decode json to models.task
 	err := json.NewDecoder(r.Body).Decode(&task)
 	if err != nil {
-		log.Warn("failed to decode reauest body", "err", err)
-		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid reauest body"})
+		// 400 Bad Request
+		log.Warn("failed to decode request body", "err", err)
+		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request body"})
 
 		return
 	}
 
-	// create task
+	// create task (go to service)
 	id, err := h.service.Create(r.Context(), task)
 	if err != nil {
-		// validate error
-		if errors.Is(err, service.ErrInvalidTitle) {
-			respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
-			return
-		}
-
-		// unknown error
-		h.log.Error("internal error", "err", err)
-		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal server error"})
+		h.handleError(w, err, op)
 		return
 	}
 
-	// Sucsess
+	// 201 Created
 	respondJSON(w, http.StatusCreated, map[string]int{"id": id})
 
 }
 
 func (h *Handler) getAllTasks(w http.ResponseWriter, r *http.Request) {
+	const op = "handlers.getAllTasks"
 
+	// get tasks (go to service)
+	tasks, err := h.service.GetAll(r.Context())
+	if err != nil {
+		h.handleError(w, err, op)
+		return
+	}
+
+	// 200 OK
+	respondJSON(w, http.StatusOK, tasks)
 }
 
 func (h *Handler) getTaskByID(w http.ResponseWriter, r *http.Request) {
@@ -70,43 +74,91 @@ func (h *Handler) getTaskByID(w http.ResponseWriter, r *http.Request) {
 	// get id from URL
 	idStr := r.PathValue("id")
 
+	// convert id to int
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
+		// 400 Bad Request
 		log.Warn("invalid id path parametr", "id", idStr)
 		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid id"})
 		return
 	}
 
-	// getting task
+	// getting task (go to service)
 	task, err := h.service.GetByID(r.Context(), id)
 	if err != nil {
-		// invalid id error
-		if errors.Is(err, service.ErrInvalidID) {
-			respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
-			return
-		}
-
-		// not found error
-		if errors.Is(err, service.ErrTaskNotFound) {
-			respondJSON(w, http.StatusNotFound, map[string]string{"error": err.Error()})
-			return
-		}
-
-		// unknown error
-		log.Error("internal error", "err", err)
-		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal server error"})
+		h.handleError(w, err, op)
 		return
 	}
-	// OK
+	// 200 OK
 	respondJSON(w, http.StatusOK, task)
 
 }
 
 func (h *Handler) updateTask(w http.ResponseWriter, r *http.Request) {
+	const op = "handlers.updateTask"
+	// add operation to log
+	log := h.log.With("op", op)
 
+	// get id from URL
+	idStr := r.PathValue("id")
+
+	// convert id to int
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		// 400 Bad Request
+		log.Warn("invalid id path parametr", "id", idStr)
+		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid id"})
+		return
+	}
+
+	// decode json to models.task
+	var updTask models.Task
+
+	err = json.NewDecoder(r.Body).Decode(&updTask)
+	if err != nil {
+		// 400 Bad Request
+		log.Warn("failed to decode reques body", "err", err)
+		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request body"})
+		return
+	}
+
+	// update task (go to service)
+	task, err := h.service.Update(r.Context(), id, updTask)
+	if err != nil {
+		h.handleError(w, err, op)
+		return
+	}
+
+	// 200 OK
+	respondJSON(w, http.StatusOK, task)
 }
 
 func (h *Handler) deleteTask(w http.ResponseWriter, r *http.Request) {
+	const op = "handlers.deleteTask"
+	// add operation to log
+	log := h.log.With("op", op)
+
+	// get id from URL
+	idStr := r.PathValue("id")
+
+	// convert id to int
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		// 400 Bad Request
+		log.Warn("invalid id path parametr", "id", idStr)
+		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid id"})
+		return
+	}
+
+	// delete task (go to service)
+	err = h.service.Delete(r.Context(), id)
+	if err != nil {
+		h.handleError(w, err, op)
+		return
+	}
+
+	// 204 No Content
+	respondJSON(w, http.StatusNoContent, nil)
 
 }
 
@@ -117,4 +169,46 @@ func respondJSON(w http.ResponseWriter, status int, payload any) {
 	if payload != nil {
 		json.NewEncoder(w).Encode(payload)
 	}
+}
+
+func (h *Handler) handleError(w http.ResponseWriter, err error, op string) {
+	log := h.log.With("op", op)
+
+	// 400 Bad Request (invalid id)
+	if errors.Is(err, models.ErrInvalidID) {
+		log.Warn("validation error", "err", err)
+		respondJSON(w, http.StatusBadRequest, map[string]string{"error": models.ErrInvalidID.Error()})
+		return
+	}
+	// 400 Bad Request (invalid title)
+	if errors.Is(err, models.ErrInvalidTitle) {
+		log.Warn("validation error", "err", err)
+		respondJSON(w, http.StatusBadRequest, map[string]string{"error": models.ErrInvalidTitle.Error()})
+		return
+	}
+
+	// 404 Not Found (task not found)
+	if errors.Is(err, models.ErrTaskNotFound) {
+		log.Warn("not found", "err", err)
+		respondJSON(w, http.StatusNotFound, map[string]string{"error": models.ErrTaskNotFound.Error()})
+		return
+	}
+
+	// 504 Gateway Timeout
+	if errors.Is(err, context.DeadlineExceeded) {
+		log.Warn("timeout", "err", err)
+		respondJSON(w, http.StatusGatewayTimeout, map[string]string{"error": "timeout"})
+		return
+	}
+
+	// client canceled
+	if errors.Is(err, context.Canceled) {
+		log.Debug("client canceled")
+		return
+	}
+
+	// 500 Internal Error
+	log.Error("internal error", "err", err)
+	respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal server error"})
+
 }

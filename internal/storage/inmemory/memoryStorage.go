@@ -82,7 +82,7 @@ func (m *MemStorage) Delete(ctx context.Context, id int) error {
 	task, exists := m.store[id]
 	if !exists {
 		log.Warn("task doesn't exist", "id", id)
-		return fmt.Errorf("%s: %w", op, ErrTaskNotFound)
+		return fmt.Errorf("%s: %w", op, models.ErrTaskNotFound)
 	}
 
 	delete(m.store, id)
@@ -113,7 +113,7 @@ func (m *MemStorage) GetByID(ctx context.Context, id int) (models.Task, error) {
 	task, exists := m.store[id]
 	if !exists {
 		log.Warn("task doesn't exist", "id", id)
-		return models.Task{}, fmt.Errorf("%s: %w", op, ErrTaskNotFound)
+		return models.Task{}, fmt.Errorf("%s: %w", op, models.ErrTaskNotFound)
 	}
 
 	log.Debug("got task", "task", task)
@@ -143,7 +143,7 @@ func (m *MemStorage) Update(ctx context.Context, id int, updTask models.Task) (m
 	_, exists := m.store[id]
 	if !exists {
 		log.Warn("task doesn't exist")
-		return models.Task{}, fmt.Errorf("%s: %w", op, ErrTaskNotFound)
+		return models.Task{}, fmt.Errorf("%s: %w", op, models.ErrTaskNotFound)
 	}
 
 	updTask.ID = id

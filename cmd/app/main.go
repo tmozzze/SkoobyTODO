@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/tmozzze/SkoobyTODO/internal/config"
 	"github.com/tmozzze/SkoobyTODO/internal/handlers"
@@ -48,9 +49,22 @@ func main() {
 	router := handler.InitRoutes()
 
 	// Server
-	log.Info("server starting", "port", cfg.ServerPort)
+	port := ":" + cfg.ServerPort
+	readTimeout := time.Duration(cfg.ReadTimeout) * time.Second
+	writeTimeout := time.Duration(cfg.WriteTimeout) * time.Second
+	idleTimeout := time.Duration(cfg.IdleTimeout) * time.Second
 
-	if err := http.ListenAndServe(":"+cfg.ServerPort, router); err != nil {
+	srv := &http.Server{
+		Addr:    port,
+		Handler: router,
+
+		ReadTimeout:  readTimeout,
+		WriteTimeout: writeTimeout,
+		IdleTimeout:  idleTimeout,
+	}
+	log.Info("server starting", "port", port)
+
+	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		log.Error("server failed to start", "err", err)
 		os.Exit(1)
 	}

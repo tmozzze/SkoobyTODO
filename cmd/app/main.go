@@ -46,7 +46,6 @@ func main() {
 
 	// Init router
 	router := handler.InitRoutes()
-	fmt.Println(router)
 
 	// Server
 	log.Info("server starting", "port", cfg.ServerPort)

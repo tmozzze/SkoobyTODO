@@ -6,11 +6,3 @@ type Task struct {
 	Description string `json:"description"`
 	Completed   bool   `json:"completed"`
 }
-
-func NewTask(id int, title, description string) *Task {
-	return &Task{ID: id, Title: title, Description: description}
-}
-
-func (t *Task) TaskDone() {
-	t.Completed = true
-}

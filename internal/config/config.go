@@ -14,9 +14,10 @@ type Config struct {
 	// server
 	ServerPort string
 	// timeouts
-	ReadTimeout  int
-	WriteTimeout int
-	IdleTimeout  int
+	ReadTimeout    int
+	WriteTimeout   int
+	IdleTimeout    int
+	HandlerTimeout int
 }
 
 func New() *Config {
@@ -47,6 +48,13 @@ func (c *Config) Load(envPath string) error {
 	if err != nil {
 		return fmt.Errorf("%s: IdleTimeout conv to int error: %w", op, err)
 	}
+
+	c.HandlerTimeout, err = strconv.Atoi(os.Getenv("HANDLER_TIMEOUT"))
+	if err != nil {
+		return fmt.Errorf("%s: HandlerTimeout conv to int error: %w", op, err)
+	}
+
+	fmt.Println("Config loaded successfully")
 
 	return nil
 }

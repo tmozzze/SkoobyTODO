@@ -1,10 +1,13 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/tmozzze/SkoobyTODO/internal/config"
@@ -53,21 +56,44 @@ func main() {
 	readTimeout := time.Duration(cfg.ReadTimeout) * time.Second
 	writeTimeout := time.Duration(cfg.WriteTimeout) * time.Second
 	idleTimeout := time.Duration(cfg.IdleTimeout) * time.Second
+	handlerTimeout := time.Duration(cfg.HandlerTimeout) * time.Second
+	routerWithTimeout := http.TimeoutHandler(router, handlerTimeout, "Timeout!\n")
 
 	srv := &http.Server{
-		Addr:    port,
-		Handler: router,
-
+		Addr:         port,
+		Handler:      routerWithTimeout,
 		ReadTimeout:  readTimeout,
 		WriteTimeout: writeTimeout,
 		IdleTimeout:  idleTimeout,
 	}
 	log.Info("server starting", "port", port)
 
-	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-		log.Error("server failed to start", "err", err)
-		os.Exit(1)
+	go func() {
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Error("server failed to start", "err", err)
+			os.Exit(1)
+		}
+
+	}()
+
+	// graceful shutdown
+
+	quit := make(chan os.Signal, 1)
+
+	signal.Notify(quit, syscall.SIGTERM, syscall.SIGINT)
+
+	<-quit // wait for signal
+
+	log.Info("server is shutting down")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Error("server forced to shutdown", "err", err)
 	}
+
+	log.Info("server exited properly")
 
 }
 

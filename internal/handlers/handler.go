@@ -194,16 +194,15 @@ func (h *Handler) handleError(w http.ResponseWriter, err error, op string) {
 		return
 	}
 
-	// 504 Gateway Timeout
+	// timeout
 	if errors.Is(err, context.DeadlineExceeded) {
-		log.Warn("timeout", "err", err)
-		respondJSON(w, http.StatusGatewayTimeout, map[string]string{"error": "timeout"})
+		log.Warn("operation timed out", "err", err)
 		return
 	}
 
 	// client canceled
 	if errors.Is(err, context.Canceled) {
-		log.Debug("client canceled")
+		log.Debug("client canceled request")
 		return
 	}
 
